@@ -1,0 +1,151 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block title %}{{ title|default:"Create Purchase Order" }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title|default:"Create Purchase Order" }}</h2>
+    
+    <form method="post" id="poForm">
+        {% csrf_token %}
+        
+        <div class="row mb-3">
+            <div class="col-md-6">
+                {{ form.supplier.label_tag }}
+                {{ form.supplier }}
+                {% if form.supplier.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.supplier.errors }}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                {{ form.status.label_tag }}
+                {{ form.status }}
+                {% if form.status.help_text %}
+                    <small class="form-text text-muted">{{ form.status.help_text }}</small>
+                {% endif %}
+                {% if form.status.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.status.errors }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <h4>Items</h4>
+            <div id="items-container">
+                {% if po and po.items.all %}
+                    {% for item in po.items.all %}
+                    <div class="item-row mb-2">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <input type="text" name="material_name_{{ forloop.counter }}" 
+                                           value="{{ item.material_name }}" 
+                                           class="form-control material-input" 
+                                           list="materials-list" 
+                                           placeholder="Enter or select material" 
+                                           required>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="number" name="quantity_{{ forloop.counter }}" 
+                                       value="{{ item.quantity }}" 
+                                       class="form-control" 
+                                       placeholder="Quantity" 
+                                       required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger remove-item">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="item-row mb-2">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <div class="input-group">
+                                    <input type="text" name="material_name_1" 
+                                           class="form-control material-input" 
+                                           list="materials-list" 
+                                           placeholder="Enter or select material" 
+                                           required>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="number" name="quantity_1" 
+                                       class="form-control" 
+                                       placeholder="Quantity" 
+                                       required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger remove-item">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-secondary mt-2" id="add-item">Add Item</button>
+        </div>
+        
+        <div class="mb-3">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{% url 'po_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<datalist id="materials-list">
+    {% for material in materials %}
+    <option value="{{ material.name }}">
+    {% endfor %}
+</datalist>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('items-container');
+    const addButton = document.getElementById('add-item');
+    let itemCount = {{ po.items.all|length|default:1 }};
+    
+    function addItemRow() {
+        itemCount++;
+        const row = document.createElement('div');
+        row.className = 'item-row mb-2';
+        row.innerHTML = `
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <input type="text" name="material_name_${itemCount}" 
+                               class="form-control material-input" 
+                               list="materials-list" 
+                               placeholder="Enter or select material" 
+                               required>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <input type="number" name="quantity_${itemCount}" 
+                           class="form-control" 
+                           placeholder="Quantity" 
+                           required>
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-danger remove-item">Remove</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+    
+    addButton.addEventListener('click', addItemRow);
+    
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-item')) {
+            e.target.closest('.item-row').remove();
+        }
+    });
+});
+</script>
+{% endblock %} 

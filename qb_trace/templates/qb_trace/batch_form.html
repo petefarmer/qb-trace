@@ -1,0 +1,105 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    
+    <form method="post" id="batchForm">
+        {% csrf_token %}
+        <div class="form-group mb-3">
+            <label for="name">Name:</label>
+            <input type="text" name="name" id="name" class="form-control" value="{{ batch.name|default:'' }}" required>
+        </div>
+
+        <div id="items">
+            {% if batch %}
+                {% for item in batch.items.all %}
+                <div class="item-row mb-3">
+                    <div class="row">
+                        <div class="col">
+                            <select name="inventory" class="form-control" required>
+                                <option value="">Select inventory item</option>
+                                {% for inventory in inventory_items %}
+                                <option value="{{ inventory.id }}" {% if item.inventory.id == inventory.id %}selected{% endif %}>
+                                    {{ inventory.material.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col">
+                            <input type="number" name="quantity" class="form-control" placeholder="Quantity" value="{{ item.quantity }}" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-danger remove-item">Remove</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="item-row mb-3">
+                    <div class="row">
+                        <div class="col">
+                            <select name="inventory" class="form-control" required>
+                                <option value="">Select inventory item</option>
+                                {% for inventory in inventory_items %}
+                                <option value="{{ inventory.id }}">
+                                    {{ inventory.material.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col">
+                            <input type="number" name="quantity" class="form-control" placeholder="Quantity" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-danger remove-item">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="button" class="btn btn-secondary mb-3" id="addItem">Add Item</button>
+        
+        <div>
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{% url 'batch_list' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('addItem').addEventListener('click', function() {
+    const itemsDiv = document.getElementById('items');
+    const newItem = document.createElement('div');
+    newItem.className = 'item-row mb-3';
+    newItem.innerHTML = `
+        <div class="row">
+            <div class="col">
+                <select name="inventory" class="form-control" required>
+                    <option value="">Select inventory item</option>
+                    {% for inventory in inventory_items %}
+                    <option value="{{ inventory.id }}">
+                        {{ inventory.material.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col">
+                <input type="number" name="quantity" class="form-control" placeholder="Quantity" required>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-danger remove-item">Remove</button>
+            </div>
+        </div>
+    `;
+    itemsDiv.appendChild(newItem);
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('remove-item')) {
+        e.target.closest('.item-row').remove();
+    }
+});
+</script>
+{% endblock %} 

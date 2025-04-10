@@ -1,0 +1,96 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block title %}Inventory{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Inventory</h2>
+    
+    <div class="mb-3">
+        <a href="{% url 'inventory_create' %}" class="btn btn-primary">Add Inventory Item</a>
+    </div>
+    
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Quantity</th>
+                <th>Expiry Date</th>
+                <th>Tracking Key</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in inventory_items %}
+            <tr>
+                <td>{{ item.material.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.expiry_date|date:"Y-m-d" }}</td>
+                <td>
+                    {% if item.tracking_key %}
+                    <a href="#" class="tracking-key-link" data-tracking-key="{{ item.tracking_key.key }}">
+                        {{ item.tracking_key.key }}
+                    </a>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'inventory_update' item.id %}" class="btn btn-sm btn-primary">Edit</a>
+                    <a href="{% url 'inventory_delete' item.id %}" class="btn btn-sm btn-danger">Delete</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- PO Details Modal -->
+<div class="modal fade" id="poDetailsModal" tabindex="-1" aria-labelledby="poDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('poDetailsModal'));
+    const modalContent = document.querySelector('#poDetailsModal .modal-content');
+    
+    document.querySelectorAll('.tracking-key-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const trackingKey = this.dataset.trackingKey;
+            
+            // Load PO details
+            fetch(`/purchase-orders/${trackingKey}/details/`)
+                .then(response => response.text())
+                .then(html => {
+                    modalContent.innerHTML = html;
+                    modal.show();
+                })
+                .catch(error => {
+                    console.error('Error loading PO details:', error);
+                    modalContent.innerHTML = `
+                        <div class="modal-header">
+                            <h5 class="modal-title">Error</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-danger">
+                                Error loading PO details. Please try again.
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    `;
+                    modal.show();
+                });
+        });
+    });
+});
+</script>
+{% endblock %} 

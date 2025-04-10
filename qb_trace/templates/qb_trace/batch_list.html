@@ -1,0 +1,48 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block title %}Batches{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Batches</h2>
+        <a href="{% url 'batch_create' %}" class="btn btn-primary">Create Batch</a>
+    </div>
+
+    {% if batches %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Items</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for batch in batches %}
+                <tr>
+                    <td>{{ batch.name }}</td>
+                    <td>
+                        <ul class="list-unstyled mb-0">
+                            {% for item in batch.items.all %}
+                            <li>{{ item.inventory.material.name }} ({{ item.quantity }})</li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>{{ batch.created_at|date:"Y-m-d" }}</td>
+                    <td>
+                        <a href="{% url 'batch_update' batch.id %}" class="btn btn-sm btn-primary">Edit</a>
+                        <a href="{% url 'batch_delete' batch.id %}" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p>No batches found.</p>
+    {% endif %}
+</div>
+{% endblock %} 

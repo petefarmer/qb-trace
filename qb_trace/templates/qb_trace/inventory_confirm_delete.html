@@ -1,0 +1,15 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Delete Inventory Item</h2>
+    
+    <p>Are you sure you want to delete the inventory item for "{{ inventory.material.name }}"?</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <a href="{% url 'inventory_list' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %} 

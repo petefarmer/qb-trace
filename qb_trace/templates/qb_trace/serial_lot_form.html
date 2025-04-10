@@ -1,0 +1,41 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block title %}{% if serial_lot %}Update{% else %}Create{% endif %} Serial Lot{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{% if serial_lot %}Update{% else %}Create{% endif %} Serial Lot</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="name" class="form-label">Name</label>
+            <input type="text" class="form-control" id="name" name="name" value="{{ serial_lot.name|default:'' }}" required>
+        </div>
+        
+        <div class="mb-3">
+            <label for="batch" class="form-label">Batch</label>
+            <select class="form-select" id="batch" name="batch" required>
+                <option value="">Select a batch</option>
+                {% for batch in batches %}
+                    <option value="{{ batch.id }}" {% if serial_lot and serial_lot.batch.id == batch.id %}selected{% endif %}>
+                        {{ batch.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            <select class="form-select" id="status" name="status" required>
+                <option value="active" {% if serial_lot and serial_lot.status == 'active' %}selected{% endif %}>Active</option>
+                <option value="completed" {% if serial_lot and serial_lot.status == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="expired" {% if serial_lot and serial_lot.status == 'expired' %}selected{% endif %}>Expired</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">{% if serial_lot %}Update{% else %}Create{% endif %}</button>
+        <a href="{% url 'seriallots' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %} 
