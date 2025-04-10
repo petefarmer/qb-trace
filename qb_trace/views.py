@@ -7,6 +7,7 @@ from .models import Supplier, Material, Inventory, PurchaseOrder, PurchaseOrderI
 from .forms import SupplierForm, MaterialForm, InventoryForm, PurchaseOrderForm, PurchaseOrderItemForm, BatchForm, BatchItemForm, SerialLotForm
 from django.db import models
 from django.utils import timezone
+from django.db import transaction
 
 def home(request):
     return redirect('seriallots')
@@ -437,56 +438,75 @@ def serial_lot_create(request):
 
 def serial_lot_update(request, pk):
     serial_lot = get_object_or_404(SerialLot, pk=pk)
+    batches = Batch.objects.all()
+    
     if request.method == 'POST':
-        serial_lot.name = request.POST.get('name')
+        name = request.POST.get('name')
         batch_id = request.POST.get('batch')
-        new_status = request.POST.get('status')
+        status = request.POST.get('status')
         
-        # If status is changing to completed, calculate and set expiry date
-        if new_status == 'completed' and serial_lot.status != 'completed':
-            # Get all expiry dates from inventory items
-            expiry_dates = []
-            for item in serial_lot.items.all():
-                if item.tracking_key:
-                    inventory_items = Inventory.objects.filter(tracking_key=item.tracking_key)
-                    for inv in inventory_items:
-                        if inv.expiry_date:
-                            expiry_dates.append(inv.expiry_date)
-            
-            # Find the nearest expiry date
-            if expiry_dates:
-                today = timezone.now().date()
-                nearest_expiry = min(expiry_dates, key=lambda x: abs((x - today).days))
-                serial_lot.expiry_date = nearest_expiry
-            
-            # Create serial lot items from batch items
-            batch_items = BatchItem.objects.filter(batch=serial_lot.batch)
-            for batch_item in batch_items:
-                # Check if the item already exists
-                existing_item = SerialLotItem.objects.filter(
-                    serial_lot=serial_lot,
-                    material=batch_item.inventory.material,
-                    inventory=batch_item.inventory
-                ).first()
-                
-                if not existing_item:
-                    SerialLotItem.objects.create(
+        # Get the current status before update
+        old_status = serial_lot.status
+        
+        # Update serial lot
+        serial_lot.name = name
+        serial_lot.batch_id = batch_id
+        serial_lot.status = status
+        
+        # If status is changing to completed, handle all updates
+        if status == 'completed' and old_status != 'completed':
+            with transaction.atomic():
+                # Create serial lot items from batch items
+                batch_items = BatchItem.objects.filter(batch=serial_lot.batch)
+                for batch_item in batch_items:
+                    # Check if the item already exists
+                    existing_item = SerialLotItem.objects.filter(
                         serial_lot=serial_lot,
                         material=batch_item.inventory.material,
-                        inventory=batch_item.inventory,
-                        quantity=batch_item.quantity,
-                        tracking_key=batch_item.inventory.tracking_key
-                    )
+                        inventory=batch_item.inventory
+                    ).first()
+                    
+                    if not existing_item:
+                        SerialLotItem.objects.create(
+                            serial_lot=serial_lot,
+                            material=batch_item.inventory.material,
+                            inventory=batch_item.inventory,
+                            quantity=batch_item.quantity,
+                            tracking_key=batch_item.inventory.tracking_key
+                        )
+                
+                # Update expiry date from inventory items
+                expiry_dates = []
+                for item in serial_lot.items.all():
+                    if item.tracking_key:
+                        inventory_items = Inventory.objects.filter(tracking_key=item.tracking_key)
+                        for inv in inventory_items:
+                            if inv.expiry_date:
+                                expiry_dates.append(inv.expiry_date)
+                
+                if expiry_dates:
+                    today = timezone.now().date()
+                    nearest_expiry = min(expiry_dates, key=lambda x: abs((x - today).days))
+                    serial_lot.expiry_date = nearest_expiry
+                
+                # Update inventory quantities
+                for item in serial_lot.items.all():
+                    if item.tracking_key:
+                        inventory_items = Inventory.objects.filter(tracking_key=item.tracking_key)
+                        for inv in inventory_items:
+                            inv.quantity = inv.quantity - item.quantity
+                            if inv.quantity < 0:
+                                messages.error(request, f'Not enough quantity in inventory for {item.material.name}')
+                                return redirect('serial_lot_update', pk=pk)
+                            inv.save()
         
-        serial_lot.batch = get_object_or_404(Batch, pk=batch_id)
-        serial_lot.status = new_status
         serial_lot.save()
         return redirect('seriallots')
     
-    batches = Batch.objects.all()
     return render(request, 'qb_trace/serial_lot_form.html', {
         'serial_lot': serial_lot,
-        'batches': batches
+        'batches': batches,
+        'title': 'Update Serial Lot'
     })
 
 def serial_lot_delete(request, pk):
