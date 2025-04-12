@@ -711,6 +711,15 @@ def serial_lot_update(request, pk):
                                 inventory.quantity -= required_quantity
                                 inventory.save()
                         
+                        # Create a single inventory item for the serial lot
+                        new_inventory = Inventory.objects.create(
+                            serial_lot=serial_lot,
+                            material=None,  # Don't set a material since this is a serial lot
+                            quantity=1,  # Serial lot is treated as a single unit
+                            unit='pcs',
+                            status='in_stock'
+                        )
+                        
                         # Set the expiry date based on the earliest expiry date from batch items
                         print("\nSetting expiry date from batch items")
                         earliest_expiry = None
@@ -720,6 +729,8 @@ def serial_lot_update(request, pk):
                                     earliest_expiry = batch_item.inventory.expiry_date
                         
                         if earliest_expiry:
+                            new_inventory.expiry_date = earliest_expiry
+                            new_inventory.save()
                             serial_lot.expiry_date = earliest_expiry
                             print(f"Updated serial lot expiry date to: {earliest_expiry}")
                     else:
@@ -804,7 +815,10 @@ def handle_po_received(po):
     po.save()
 
 def sales_order_list(request):
-    sales_orders = SalesOrder.objects.all()
+    sales_orders = SalesOrder.objects.prefetch_related(
+        'items__tracking_key',
+        'items__serial_lot'
+    ).all()
     return render(request, 'qb_trace/sales_order_list.html', {'sales_orders': sales_orders})
 
 def sales_order_create(request):
