@@ -32,6 +32,12 @@ urlpatterns = [
     path('suppliers/<int:pk>/update/', views.supplier_update, name='supplier_update'),
     path('suppliers/<int:pk>/delete/', views.supplier_delete, name='supplier_delete'),
     
+    # Customer URLs
+    path('customers/', views.customer_list, name='customers'),
+    path('customers/create/', views.customer_create, name='customer_create'),
+    path('customers/<int:pk>/update/', views.customer_update, name='customer_update'),
+    path('customers/<int:pk>/delete/', views.customer_delete, name='customer_delete'),
+    
     # Material URLs
     path('materials/', views.material_list, name='material_list'),
     path('materials/create/', views.material_create, name='material_create'),
@@ -50,6 +56,12 @@ urlpatterns = [
     path('purchase-orders/<int:pk>/update/', views.po_update, name='po_update'),
     path('purchase-orders/<int:pk>/delete/', views.po_delete, name='po_delete'),
     path('purchase-orders/<str:tracking_key>/details/', views.po_details, name='po_details'),
+    
+    # Sales Order URLs
+    path('sales-orders/', views.sales_order_list, name='sales_orders'),
+    path('sales-orders/create/', views.sales_order_create, name='sales_order_create'),
+    path('sales-orders/<int:pk>/update/', views.sales_order_update, name='sales_order_update'),
+    path('sales-orders/<int:pk>/delete/', views.sales_order_delete, name='sales_order_delete'),
     
     # Batch URLs
     path('batches/', views.batch_list, name='batch_list'),

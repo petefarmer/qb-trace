@@ -58,112 +58,67 @@
 <div class="modal fade" id="serialLotModal" tabindex="-1" aria-labelledby="serialLotModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <!-- Content will be loaded dynamically -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="serialLotModalLabel">Serial Lot Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="serialLotModalContent"></div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- PO Details Modal -->
+<div class="modal fade" id="poDetailsModal" tabindex="-1" aria-labelledby="poDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="poDetailsModalLabel">PO Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="poDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
+let serialLotModal;
+let poModal;
+
 document.addEventListener('DOMContentLoaded', function() {
-    const modal = new bootstrap.Modal(document.getElementById('serialLotModal'));
-    const modalContent = document.querySelector('#serialLotModal .modal-content');
+    // Initialize modals after DOM is loaded
+    serialLotModal = new bootstrap.Modal(document.getElementById('serialLotModal'));
+    poModal = new bootstrap.Modal(document.getElementById('poDetailsModal'));
     
     document.querySelectorAll('.serial-lot-details').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const id = this.dataset.id;
-            
-            // Load serial lot details
-            fetch(`/seriallots/${id}/details/`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        throw new Error(data.error);
-                    }
-                    
-                    // Create modal content
-                    let content = `
-                        <div class="modal-header">
-                            <h5 class="modal-title">Serial Lot Details</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="serial-lot-info mb-4">
-                                <h5>Serial Lot Information</h5>
-                                <p><strong>Name:</strong> ${data.serial_lot.name}</p>
-                                <p><strong>Batch:</strong> ${data.serial_lot.batch}</p>
-                                <p><strong>Status:</strong> ${data.serial_lot.status}</p>
-                                <p><strong>Created At:</strong> ${data.serial_lot.created_at}</p>
-                                <p><strong>Expiry Date:</strong> ${data.serial_lot.expiry_date || 'N/A'}</p>
-                            </div>`;
-                    
-                    if (data.items && data.items.length > 0) {
-                        content += `
-                            <h5>Materials and Purchase Orders</h5>
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Material</th>
-                                        <th>Quantity</th>
-                                        <th>Tracking Key</th>
-                                        <th>PO Number</th>
-                                        <th>Supplier</th>
-                                        <th>Expiry Dates</th>
-                                    </tr>
-                                </thead>
-                                <tbody>`;
-                        
-                        data.items.forEach(item => {
-                            content += `
-                                <tr>
-                                    <td>${item.material_name}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>${item.tracking_key || 'N/A'}</td>
-                                    <td>${item.po_id ? `<a href="/purchase-orders/${item.tracking_key}/details/">${item.po_number || 'N/A'}</a>` : 'N/A'}</td>
-                                    <td>${item.supplier || 'N/A'}</td>
-                                    <td>${item.expiry_dates.length > 0 ? item.expiry_dates.join(', ') : 'N/A'}</td>
-                                </tr>`;
-                        });
-                        
-                        content += `
-                                </tbody>
-                            </table>`;
-                    } else {
-                        content += `
-                            <div class="alert alert-info">
-                                No materials have been added to this serial lot yet.
-                            </div>`;
-                    }
-                    
-                    content += `
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>`;
-                    
-                    modalContent.innerHTML = content;
-                    modal.show();
-                })
-                .catch(error => {
-                    console.error('Error loading serial lot details:', error);
-                    modalContent.innerHTML = `
-                        <div class="modal-header">
-                            <h5 class="modal-title">Error</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="alert alert-danger">
-                                Error loading serial lot details: ${error.message}
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    `;
-                    modal.show();
-                });
+            loadSerialLotDetails(id);
         });
     });
 });
+
+// Function to load serial lot details
+function loadSerialLotDetails(serialLotId) {
+    fetch(`/seriallots/${serialLotId}/details/`)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('serialLotModalContent').innerHTML = html;
+            serialLotModal.show();
+        })
+        .catch(error => {
+            console.error('Error loading serial lot details:', error);
+            document.getElementById('serialLotModalContent').innerHTML = `
+                <div class="alert alert-danger">Error loading serial lot details. Please try again.</div>
+            `;
+            serialLotModal.show();
+        });
+}
 </script>
 {% endblock %} 

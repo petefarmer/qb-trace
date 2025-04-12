@@ -1,0 +1,98 @@
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Serial Lot Information</h6>
+    </div>
+    <div class="card-body">
+        <p><strong>Name:</strong> {{ serial_lot.name }}</p>
+        <p><strong>Batch:</strong> {{ serial_lot.batch.name }}</p>
+        <p><strong>Status:</strong> {{ serial_lot.get_status_display }}</p>
+        <p><strong>Created At:</strong> {{ serial_lot.created_at|date:"Y-m-d H:i" }}</p>
+        <p><strong>Expiry Date:</strong> {% if serial_lot.expiry_date %}{{ serial_lot.expiry_date|date:"Y-m-d" }}{% else %}Not set{% endif %}</p>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Materials</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Material</th>
+                        <th>Quantity</th>
+                        <th>Tracking Key</th>
+                        <th>PO Number</th>
+                        <th>Supplier</th>
+                        <th>Expiry Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>{{ item.inventory.material.name }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>
+                            {% if item.inventory.tracking_key %}
+                                <a href="#" class="tracking-key-link" data-tracking-key="{{ item.inventory.tracking_key.key }}">
+                                    {{ item.inventory.tracking_key.key }}
+                                </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.inventory.tracking_key and item.inventory.tracking_key.purchaseorderitem_set.first %}
+                                PO-{{ item.inventory.tracking_key.purchaseorderitem_set.first.purchase_order.id }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.inventory.tracking_key and item.inventory.tracking_key.purchaseorderitem_set.first %}
+                                {{ item.inventory.tracking_key.purchaseorderitem_set.first.purchase_order.supplier.name }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{% if item.inventory.expiry_date %}{{ item.inventory.expiry_date|date:"Y-m-d" }}{% else %}-{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if sales_orders %}
+<div class="card">
+    <div class="card-header bg-light">
+        <h6 class="mb-0">Sales Orders</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Sales Order</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sales_order in sales_orders %}
+                    <tr>
+                        <td>SO-{{ sales_order.sales_order.id }}</td>
+                        <td>{{ sales_order.sales_order.customer.name }}</td>
+                        <td>{{ sales_order.sales_order.get_status_display }}</td>
+                        <td>{{ sales_order.sales_order.created_at|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %} 

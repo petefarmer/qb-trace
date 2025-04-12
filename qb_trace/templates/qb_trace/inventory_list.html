@@ -4,39 +4,44 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Inventory</h2>
+    <h2>Inventory List</h2>
+    <a href="{% url 'inventory_create' %}" class="btn btn-primary mb-3">Add Inventory Item</a>
     
-    <div class="mb-3">
-        <a href="{% url 'inventory_create' %}" class="btn btn-primary">Add Inventory Item</a>
-    </div>
-    
-    <table class="table">
+    <table class="table table-striped" id="inventory-list-table">
         <thead>
             <tr>
-                <th>Material</th>
+                <th>Item</th>
                 <th>Quantity</th>
-                <th>Expiry Date</th>
                 <th>Tracking Key</th>
+                <th>Expiry Date</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for item in inventory_items %}
             <tr>
-                <td>{{ item.material.name }}</td>
-                <td>{{ item.quantity }}</td>
-                <td>{{ item.expiry_date|date:"Y-m-d" }}</td>
                 <td>
-                    {% if item.tracking_key %}
-                    <a href="#" class="tracking-key-link" data-tracking-key="{{ item.tracking_key.key }}">
-                        {{ item.tracking_key.key }}
-                    </a>
-                    {% else %}
-                    -
+                    {% if item.material %}
+                        {{ item.material.name }}
+                    {% elif item.serial_lot %}
+                        <a href="#" class="serial-lot-name" data-serial-lot-id="{{ item.serial_lot.id }}">
+                            {{ item.serial_lot.name }}
+                        </a>
                     {% endif %}
                 </td>
+                <td>{{ item.quantity }}</td>
                 <td>
-                    <a href="{% url 'inventory_update' item.id %}" class="btn btn-sm btn-primary">Edit</a>
+                    {% if item.tracking_key %}
+                        <a href="#" class="tracking-key-link" data-tracking-key="{{ item.tracking_key.key }}">
+                            {{ item.tracking_key.key }}
+                        </a>
+                    {% else %}
+                        <span class="text-muted">{{ item.serial_lot.name }}</span>
+                    {% endif %}
+                </td>
+                <td>{% if item.expiry_date %}{{ item.expiry_date|date:"Y-m-d" }}{% else %}-{% endif %}</td>
+                <td>
+                    <a href="{% url 'inventory_update' item.id %}" class="btn btn-sm btn-warning">Edit</a>
                     <a href="{% url 'inventory_delete' item.id %}" class="btn btn-sm btn-danger">Delete</a>
                 </td>
             </tr>
@@ -45,50 +50,148 @@
     </table>
 </div>
 
-<!-- PO Details Modal -->
-<div class="modal fade" id="poDetailsModal" tabindex="-1" aria-labelledby="poDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- Material Details Modal -->
+<div class="modal fade" id="materialDetailsModal" tabindex="-1" aria-labelledby="materialDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <!-- Content will be loaded dynamically -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="materialDetailsModalLabel">Material Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="materialDetailsContent"></div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Serial Lot Details Modal -->
+<div class="modal fade" id="serialLotModal" tabindex="-1" aria-labelledby="serialLotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="serialLotModalLabel">Serial Lot Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="serialLotModalContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PO Details Modal -->
+<div class="modal fade" id="poDetailsModal" tabindex="-1" aria-labelledby="poDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="poDetailsModalLabel">Tracking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="poDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .tracking-key-link {
+        text-decoration: underline;
+        color: #0d6efd;
+        cursor: pointer;
+    }
+    .tracking-key-link:hover {
+        color: #0a58ca;
+    }
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const modal = new bootstrap.Modal(document.getElementById('poDetailsModal'));
-    const modalContent = document.querySelector('#poDetailsModal .modal-content');
+    console.log('DOM Content Loaded');
     
-    document.querySelectorAll('.tracking-key-link').forEach(link => {
+    // Initialize Bootstrap modals
+    const materialModal = new bootstrap.Modal(document.getElementById('materialDetailsModal'));
+    const serialLotModal = new bootstrap.Modal(document.getElementById('serialLotModal'));
+    const poModal = new bootstrap.Modal(document.getElementById('poDetailsModal'));
+
+    // Serial Lot Details Modal
+    const serialLotModalContent = document.getElementById('serialLotModalContent');
+
+    // Function to load serial lot details
+    function loadSerialLotDetails(serialLotId) {
+        fetch(`/seriallots/${serialLotId}/details/`)
+            .then(response => response.text())
+            .then(html => {
+                serialLotModalContent.innerHTML = html;
+                serialLotModal.show();
+            })
+            .catch(error => {
+                console.error('Error loading serial lot details:', error);
+                serialLotModalContent.innerHTML = `
+                    <div class="modal-header">
+                        <h5 class="modal-title">Error</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-danger">Error loading serial lot details. Please try again.</div>
+                    </div>
+                `;
+                serialLotModal.show();
+            });
+    }
+
+    // Function to load PO details
+    function loadPODetails(trackingKey) {
+        console.log('Loading PO details for tracking key:', trackingKey);
+        fetch(`/purchase-orders/${trackingKey}/details/`)
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('poDetailsContent').innerHTML = data;
+                poModal.show();
+            })
+            .catch(error => {
+                console.error('Error loading PO details:', error);
+            });
+    }
+
+    // Debug: Log all elements with tracking-key-link class
+    const trackingKeyLinks = document.querySelectorAll('.tracking-key-link');
+    console.log('Found tracking key links:', trackingKeyLinks.length);
+    trackingKeyLinks.forEach(link => {
+        console.log('Tracking key link:', {
+            text: link.textContent.trim(),
+            dataset: link.dataset,
+            parent: link.parentElement
+        });
+    });
+
+    // Debug: Log all elements with serial-lot-name class
+    const serialLotLinks = document.querySelectorAll('.serial-lot-name');
+    console.log('Found serial lot links:', serialLotLinks.length);
+    serialLotLinks.forEach(link => {
+        console.log('Serial lot link:', {
+            text: link.textContent.trim(),
+            dataset: link.dataset,
+            parent: link.parentElement
+        });
+    });
+
+    // Set up event listeners for serial lot names in Item column
+    document.querySelectorAll('#inventory-list-table tbody tr td:nth-child(1) .serial-lot-name').forEach(link => {
         link.addEventListener('click', function(e) {
+            console.log('Serial lot name clicked:', this.textContent.trim());
             e.preventDefault();
-            const trackingKey = this.dataset.trackingKey;
-            
-            // Load PO details
-            fetch(`/purchase-orders/${trackingKey}/details/`)
-                .then(response => response.text())
-                .then(html => {
-                    modalContent.innerHTML = html;
-                    modal.show();
-                })
-                .catch(error => {
-                    console.error('Error loading PO details:', error);
-                    modalContent.innerHTML = `
-                        <div class="modal-header">
-                            <h5 class="modal-title">Error</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="alert alert-danger">
-                                Error loading PO details. Please try again.
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        </div>
-                    `;
-                    modal.show();
-                });
+            loadSerialLotDetails(this.dataset.serialLotId);
+        });
+    });
+
+    // Set up event listeners for tracking keys in Tracking Key column
+    document.querySelectorAll('#inventory-list-table tbody tr td:nth-child(3) .tracking-key-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            console.log('Tracking key clicked:', this.textContent.trim());
+            e.preventDefault();
+            loadPODetails(this.dataset.trackingKey);
         });
     });
 });

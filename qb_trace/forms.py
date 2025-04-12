@@ -1,10 +1,21 @@
 from django import forms
-from .models import Supplier, Material, Inventory, PurchaseOrder, PurchaseOrderItem, Batch, BatchItem, SerialLot, SerialLotItem
+from .models import Supplier, Material, Inventory, PurchaseOrder, PurchaseOrderItem, Batch, BatchItem, SerialLot, SerialLotItem, Customer, SalesOrder, SalesOrderItem
 
 class SupplierForm(forms.ModelForm):
     class Meta:
         model = Supplier
         fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'})
+        }
+
+class CustomerForm(forms.ModelForm):
+    class Meta:
+        model = Customer
+        fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'})
+        }
 
 class MaterialForm(forms.ModelForm):
     class Meta:
@@ -22,7 +33,7 @@ class PurchaseOrderForm(forms.ModelForm):
         fields = ['supplier', 'status']
         widgets = {
             'supplier': forms.Select(attrs={'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'})
         }
 
     def __init__(self, *args, **kwargs):
@@ -36,7 +47,31 @@ class PurchaseOrderForm(forms.ModelForm):
 class PurchaseOrderItemForm(forms.ModelForm):
     class Meta:
         model = PurchaseOrderItem
-        fields = ['material_name', 'quantity']
+        fields = ['item_name', 'material', 'quantity']
+        widgets = {
+            'item_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'material': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control'})
+        }
+
+class SalesOrderForm(forms.ModelForm):
+    class Meta:
+        model = SalesOrder
+        fields = ['customer', 'status']
+        widgets = {
+            'customer': forms.Select(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'})
+        }
+
+class SalesOrderItemForm(forms.ModelForm):
+    class Meta:
+        model = SalesOrderItem
+        fields = ['item_name', 'material', 'quantity']
+        widgets = {
+            'item_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'material': forms.Select(attrs={'class': 'form-control'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control'})
+        }
 
 class BatchForm(forms.ModelForm):
     class Meta:

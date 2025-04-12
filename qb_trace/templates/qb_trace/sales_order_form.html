@@ -1,0 +1,121 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>{{ title }}</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="customer" class="form-label">Customer</label>
+            {{ form.customer }}
+        </div>
+        <div class="mb-3">
+            <label for="status" class="form-label">Status</label>
+            {{ form.status }}
+        </div>
+        <div class="mb-3">
+            <h4>Items</h4>
+            <div id="items-container">
+                {% if sales_order and sales_order.items.all %}
+                    {% for item in sales_order.items.all %}
+                    <div class="item-row mb-2">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <select name="item_name_{{ forloop.counter }}" class="form-select" required>
+                                    <option value="">Select an item</option>
+                                    {% for inv_item in inventory_items %}
+                                        <option value="{% if inv_item.material %}{{ inv_item.material.name }}{% else %}{{ inv_item.serial_lot.name }}{% endif %}"
+                                                {% if item.item_name == inv_item.material.name or item.item_name == inv_item.serial_lot.name %}selected{% endif %}>
+                                            {% if inv_item.material %}{{ inv_item.material.name }}{% else %}{{ inv_item.serial_lot.name }}{% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="number" name="quantity_{{ forloop.counter }}" 
+                                       value="{{ item.quantity }}" 
+                                       class="form-control" 
+                                       placeholder="Quantity" 
+                                       required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger remove-item">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="item-row mb-2">
+                        <div class="row">
+                            <div class="col-md-5">
+                                <select name="item_name_1" class="form-select" required>
+                                    <option value="">Select an item</option>
+                                    {% for item in inventory_items %}
+                                        <option value="{% if item.material %}{{ item.material.name }}{% else %}{{ item.serial_lot.name }}{% endif %}">
+                                            {% if item.material %}{{ item.material.name }}{% else %}{{ item.serial_lot.name }}{% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="number" name="quantity_1" 
+                                       class="form-control" 
+                                       placeholder="Quantity" 
+                                       required>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger remove-item">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" class="btn btn-secondary mt-2" id="add-item">Add Item</button>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{% url 'sales_orders' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+
+<script>
+document.getElementById('add-item').addEventListener('click', function() {
+    const itemsContainer = document.getElementById('items-container');
+    const newItem = document.createElement('div');
+    newItem.className = 'item-row mb-2';
+    newItem.innerHTML = `
+        <div class="row">
+            <div class="col-md-5">
+                <select name="item_name_${itemsContainer.children.length + 1}" class="form-select" required>
+                    <option value="">Select an item</option>
+                    {% for item in inventory_items %}
+                        <option value="{% if item.material %}{{ item.material.name }}{% else %}{{ item.serial_lot.name }}{% endif %}">
+                            {% if item.material %}{{ item.material.name }}{% else %}{{ item.serial_lot.name }}{% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <input type="number" name="quantity_${itemsContainer.children.length + 1}" 
+                       class="form-control" 
+                       placeholder="Quantity" 
+                       required>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-danger remove-item">Remove</button>
+            </div>
+        </div>
+    `;
+    itemsContainer.appendChild(newItem);
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('remove-item')) {
+        e.target.closest('.item-row').remove();
+    }
+});
+</script>
+{% endblock %} 

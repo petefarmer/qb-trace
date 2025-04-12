@@ -1,0 +1,40 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block title %}Customers{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Customers</h1>
+        <a href="{% url 'customer_create' %}" class="btn btn-primary">Create Customer</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for customer in customers %}
+                <tr>
+                    <td>{{ customer.name }}</td>
+                    <td>{{ customer.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <a href="{% url 'customer_update' customer.id %}" class="btn btn-sm btn-primary">Edit</a>
+                        <a href="{% url 'customer_delete' customer.id %}" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center">No customers found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %} 

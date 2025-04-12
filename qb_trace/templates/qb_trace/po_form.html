@@ -42,8 +42,8 @@
                         <div class="row">
                             <div class="col-md-5">
                                 <div class="input-group">
-                                    <input type="text" name="material_name_{{ forloop.counter }}" 
-                                           value="{{ item.material_name }}" 
+                                    <input type="text" name="item_name_{{ forloop.counter }}" 
+                                           value="{{ item.item_name }}" 
                                            class="form-control material-input" 
                                            list="materials-list" 
                                            placeholder="Enter or select material" 
@@ -68,7 +68,7 @@
                         <div class="row">
                             <div class="col-md-5">
                                 <div class="input-group">
-                                    <input type="text" name="material_name_1" 
+                                    <input type="text" name="item_name_1" 
                                            class="form-control material-input" 
                                            list="materials-list" 
                                            placeholder="Enter or select material" 
@@ -106,19 +106,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('items-container');
-    const addButton = document.getElementById('add-item');
-    let itemCount = {{ po.items.all|length|default:1 }};
-    
-    function addItemRow() {
+    const itemsContainer = document.getElementById('items-container');
+    const addItemButton = document.getElementById('add-item');
+    let itemCount = document.querySelectorAll('.item-row').length || 1;
+
+    addItemButton.addEventListener('click', function() {
         itemCount++;
-        const row = document.createElement('div');
-        row.className = 'item-row mb-2';
-        row.innerHTML = `
+        const newItem = document.createElement('div');
+        newItem.className = 'item-row mb-2';
+        newItem.innerHTML = `
             <div class="row">
                 <div class="col-md-5">
                     <div class="input-group">
-                        <input type="text" name="material_name_${itemCount}" 
+                        <input type="text" name="item_name_${itemCount}" 
                                class="form-control material-input" 
                                list="materials-list" 
                                placeholder="Enter or select material" 
@@ -136,12 +136,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `;
-        container.appendChild(row);
-    }
-    
-    addButton.addEventListener('click', addItemRow);
-    
-    container.addEventListener('click', function(e) {
+        itemsContainer.appendChild(newItem);
+    });
+
+    // Add event listeners to all remove buttons
+    document.querySelectorAll('.remove-item').forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('.item-row').remove();
+        });
+    });
+
+    // Add event listener for dynamically added remove buttons
+    itemsContainer.addEventListener('click', function(e) {
         if (e.target.classList.contains('remove-item')) {
             e.target.closest('.item-row').remove();
         }

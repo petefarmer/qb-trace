@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <h1>{% if serial_lot %}Update{% else %}Create{% endif %} Serial Lot</h1>
     
-    <form method="post">
+    <form method="post" action="{% if serial_lot %}{% url 'serial_lot_update' serial_lot.pk %}{% else %}{% url 'serial_lot_create' %}{% endif %}">
         {% csrf_token %}
         <div class="mb-3">
             <label for="name" class="form-label">Name</label>

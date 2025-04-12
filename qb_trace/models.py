@@ -6,9 +6,10 @@ from datetime import timedelta
 import random
 import string
 from django.db import connection
+from django.core.exceptions import ValidationError
 
 class Supplier(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -17,6 +18,22 @@ class Supplier(models.Model):
 
     class Meta:
         db_table = 'suppliers'
+        ordering = ['name']
+
+class Customer(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    contact_person = models.CharField(max_length=100, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    address = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = 'customers'
         ordering = ['name']
 
 class Material(models.Model):
@@ -44,60 +61,95 @@ class TrackingKey(models.Model):
         ordering = ['-created_at']
 
 class Inventory(models.Model):
-    material = models.ForeignKey(Material, on_delete=models.CASCADE, related_name='inventory_items')
-    quantity = models.PositiveIntegerField(default=0)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, null=True, blank=True)
+    serial_lot = models.ForeignKey('SerialLot', on_delete=models.CASCADE, null=True, blank=True, related_name='inventory_items')
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=20, default='pcs')
+    location = models.CharField(max_length=100, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=[
+        ('in_stock', 'In Stock'),
+        ('reserved', 'Reserved'),
+        ('shipped', 'Shipped')
+    ], default='in_stock')
+    tracking_key = models.ForeignKey(TrackingKey, on_delete=models.SET_NULL, null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True)
-    tracking_key = models.ForeignKey(TrackingKey, on_delete=models.SET_NULL, null=True, blank=True, related_name='inventory_items')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'inventory'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        if self.material:
+            return f"{self.material.name} - {self.quantity} {self.unit}"
+        elif self.serial_lot:
+            return f"{self.serial_lot.name} - {self.quantity} {self.unit}"
+        return f"Inventory Item {self.id}"
+
+    def clean(self):
+        if not self.material and not self.serial_lot:
+            raise ValidationError("Either material or serial lot must be specified")
+        if self.material and self.serial_lot:
+            raise ValidationError("Cannot specify both material and serial lot")
 
     def save(self, *args, **kwargs):
         if not self.expiry_date:
             self.expiry_date = generate_expiry_date()
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return f"{self.material.name} - {self.quantity} (Expires: {self.expiry_date})"
-
-    class Meta:
-        db_table = 'inventory'
-        ordering = ['material__name']
-
 class PurchaseOrder(models.Model):
-    STATUS_CHOICES = [
-        ('ordered', 'Ordered'),
-        ('received', 'Received'),
-    ]
-    
     supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name='purchase_orders')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ordered')
+    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('received', 'Received')], default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"PO-{self.id} - {self.supplier.name}"
 
     class Meta:
         db_table = 'purchase_orders'
         ordering = ['-created_at']
 
+    def __str__(self):
+        return f"PO-{self.id}"
+
 class PurchaseOrderItem(models.Model):
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
-    material_name = models.CharField(max_length=100)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    item_name = models.CharField(max_length=255)
+    material = models.ForeignKey(Material, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchase_order_items')
+    quantity = models.PositiveIntegerField()
     tracking_key = models.ForeignKey(TrackingKey, on_delete=models.SET_NULL, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.material_name} - {self.quantity}"
 
     class Meta:
         db_table = 'purchase_order_items'
-        ordering = ['id']
+
+    def __str__(self):
+        return f"{self.item_name} - {self.quantity}"
+
+class SalesOrder(models.Model):
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='sales_orders')
+    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('completed', 'Completed')], default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'sales_orders'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"SO-{self.id}"
+
+class SalesOrderItem(models.Model):
+    sales_order = models.ForeignKey(SalesOrder, on_delete=models.CASCADE, related_name='items')
+    item_name = models.CharField(max_length=255)
+    material = models.ForeignKey(Material, on_delete=models.SET_NULL, null=True, blank=True, related_name='sales_order_items')
+    quantity = models.PositiveIntegerField()
+    serial_lot = models.ForeignKey('SerialLot', on_delete=models.SET_NULL, null=True, blank=True, related_name='sales_order_items')
+    tracking_key = models.ForeignKey(TrackingKey, on_delete=models.SET_NULL, null=True, blank=True, related_name='sales_order_items')
+
+    class Meta:
+        db_table = 'sales_order_items'
+
+    def __str__(self):
+        return f"{self.item_name} - {self.quantity}"
 
 class Batch(models.Model):
     name = models.CharField(max_length=255)
@@ -145,17 +197,16 @@ def handle_po_received(sender, instance, **kwargs):
     if instance.status == 'received':
         with transaction.atomic():
             for item in instance.items.all():
-                material = Material.objects.filter(name=item.material_name).first()
-                if material:
+                if item.material:
                     tracking_key = TrackingKey.objects.create(
-                        key=generate_tracking_key(material.name)
+                        key=generate_tracking_key(item.material.name)
                     )
                     # Only update the tracking_key field
                     PurchaseOrderItem.objects.filter(id=item.id).update(tracking_key=tracking_key)
                     
                     # Create inventory record
                     Inventory.objects.create(
-                        material=material,
+                        material=item.material,
                         quantity=item.quantity,
                         tracking_key=tracking_key
                     )

@@ -11,47 +11,23 @@
     {% else %}
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">Purchase Order Details</h4>
-                    <div>
-                        <a href="{% url 'po_update' po.id %}" class="btn btn-warning btn-sm">Edit</a>
-                        <a href="{% url 'po_delete' po.id %}" class="btn btn-danger btn-sm">Delete</a>
-                    </div>
-                </div>
+                <h4 class="mb-0">Purchase Order Details</h4>
             </div>
             <div class="card-body">
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header bg-light">
-                                <h5 class="mb-0">Order Information</h5>
-                            </div>
-                            <div class="card-body">
-                                <dl class="row mb-0">
-                                    <dt class="col-sm-4">PO Number</dt>
-                                    <dd class="col-sm-8">PO-{{ po.id }}</dd>
-                                    
-                                    <dt class="col-sm-4">Supplier</dt>
-                                    <dd class="col-sm-8">{{ po.supplier.name }}</dd>
-                                    
-                                    <dt class="col-sm-4">Status</dt>
-                                    <dd class="col-sm-8">
-                                        <span class="badge {% if po.status == 'received' %}bg-success{% else %}bg-warning{% endif %}">
-                                            {{ po.get_status_display }}
-                                        </span>
-                                    </dd>
-                                    
-                                    <dt class="col-sm-4">Created</dt>
-                                    <dd class="col-sm-8">{{ po.created_at|date:"Y-m-d H:i" }}</dd>
-                                    
-                                    <dt class="col-sm-4">Last Updated</dt>
-                                    <dd class="col-sm-8">{{ po.updated_at|date:"Y-m-d H:i" }}</dd>
-                                </dl>
-                            </div>
-                        </div>
+                        <h5>Order Information</h5>
+                        <p><strong>PO Number:</strong> PO-{{ po.id }}</p>
+                        <p><strong>Supplier:</strong> {{ po.supplier.name }}</p>
+                        <p><strong>Status:</strong> 
+                            <span class="badge {% if po.status == 'pending' %}bg-warning{% elif po.status == 'received' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ po.status }}
+                            </span>
+                        </p>
+                        <p><strong>Created:</strong> {{ po.created_at|date:"Y-m-d H:i" }}</p>
                     </div>
                 </div>
-
+                
                 <div class="card">
                     <div class="card-header bg-light">
                         <h5 class="mb-0">Order Items</h5>
@@ -74,9 +50,7 @@
                                         <td>{{ item.quantity }}</td>
                                         <td>
                                             {% if item.tracking_key %}
-                                                <a href="{% url 'po_details' item.tracking_key.key %}" class="text-decoration-none">
-                                                    {{ item.tracking_key.key }}
-                                                </a>
+                                                {{ item.tracking_key.key }}
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -93,9 +67,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="card-footer">
-                <a href="{% url 'po_list' %}" class="btn btn-secondary">Back to List</a>
             </div>
         </div>
     {% endif %}

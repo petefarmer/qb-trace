@@ -3,13 +3,23 @@ from django.contrib import messages
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from django.http import JsonResponse
-from .models import Supplier, Material, Inventory, PurchaseOrder, PurchaseOrderItem, Batch, BatchItem, generate_tracking_key, TrackingKey, SerialLot, SerialLotItem, Customer, SalesOrder, SalesOrderItem
+from .models import (
+    Supplier, Material, Inventory, PurchaseOrder, PurchaseOrderItem,
+    Batch, BatchItem, generate_tracking_key, TrackingKey, SerialLot,
+    SerialLotItem, SalesOrder, SalesOrderItem
+)
+try:
+    from .models import Customer
+except ImportError:
+    Customer = None
 from .forms import SupplierForm, MaterialForm, InventoryForm, PurchaseOrderForm, PurchaseOrderItemForm, BatchForm, BatchItemForm, SerialLotForm, CustomerForm, SalesOrderForm
 from django.db import models
 from django.utils import timezone
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Sum, F, Q
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from decimal import Decimal
 
 def home(request):
     return redirect('seriallots')

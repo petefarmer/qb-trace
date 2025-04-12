@@ -1,0 +1,141 @@
+{% extends 'qb_trace/base.html' %}
+
+{% block title %}Sales Orders{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Sales Orders</h1>
+        <a href="{% url 'sales_order_create' %}" class="btn btn-primary">Create Sales Order</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>SO Number</th>
+                    <th>Customer</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for so in sales_orders %}
+                <tr>
+                    <td>SO-{{ so.id }}</td>
+                    <td>{{ so.customer.name }}</td>
+                    <td>
+                        <span class="badge {% if so.status == 'pending' %}bg-warning{% elif so.status == 'completed' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ so.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <ul class="list-unstyled mb-0">
+                            {% for item in so.items.all %}
+                            <li>
+                                {{ item.item_name }} ({{ item.quantity }})
+                                {% if item.tracking_key %}
+                                <br>
+                                <small class="text-muted">
+                                    Tracking Key: <a href="#" class="text-decoration-none tracking-key-link" data-tracking-key="{{ item.tracking_key.key }}">{{ item.tracking_key.key }}</a>
+                                </small>
+                                {% endif %}
+                                {% if item.serial_lot %}
+                                <br>
+                                <small class="text-muted">
+                                    Serial Lot: <a href="#" class="text-decoration-none serial-lot-link" data-serial-lot-id="{{ item.serial_lot.id }}">{{ item.serial_lot.name }}</a>
+                                </small>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>{{ so.created_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <a href="{% url 'sales_order_update' so.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                        <a href="{% url 'sales_order_delete' so.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this sales order?')">Delete</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">No sales orders found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tracking Details Modal -->
+<div class="modal fade" id="trackingDetailsModal" tabindex="-1" aria-labelledby="trackingDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="trackingDetailsModalLabel">Tracking Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="trackingDetailsContent">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Serial Lot Details Modal -->
+<div class="modal fade" id="serialLotDetailsModal" tabindex="-1" aria-labelledby="serialLotDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="serialLotDetailsModalLabel">Serial Lot Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="serialLotDetailsContent">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle tracking key links
+    document.querySelectorAll('.tracking-key-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const trackingKey = this.dataset.trackingKey;
+            const modal = new bootstrap.Modal(document.getElementById('trackingDetailsModal'));
+            
+            // Load the content
+            fetch(`/purchase-orders/${trackingKey}/details/`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('trackingDetailsContent').innerHTML = html;
+                    modal.show();
+                });
+        });
+    });
+
+    // Handle serial lot links
+    document.querySelectorAll('.serial-lot-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const serialLotId = this.dataset.serialLotId;
+            const modal = new bootstrap.Modal(document.getElementById('serialLotDetailsModal'));
+            
+            // Load the content
+            fetch(`/seriallots/${serialLotId}/details/`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('serialLotDetailsContent').innerHTML = html;
+                    modal.show();
+                });
+        });
+    });
+});
+</script>
+{% endblock %} 
